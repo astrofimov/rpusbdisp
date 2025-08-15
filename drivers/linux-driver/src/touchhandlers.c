@@ -1,6 +1,6 @@
 /*
  *    RoboPeak USB LCD Display Linux Driver
- *    
+ *
  *    Copyright (C) 2009 - 2013 RoboPeak Team
  *    This file is licensed under the GPL. See LICENSE in the package.
  *
@@ -28,14 +28,14 @@ static int _on_create_input_dev(struct input_dev ** inputdev)
         return -ENOMEM;
     }
 
-    (*inputdev)->evbit[0] = BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);  
-    
-    (*inputdev)->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);  
+    (*inputdev)->evbit[0] = BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);
+
+    (*inputdev)->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 
 
     input_set_abs_params((*inputdev), ABS_X, 0, RP_DISP_DEFAULT_WIDTH, 0, 0);
     input_set_abs_params((*inputdev), ABS_Y, 0, RP_DISP_DEFAULT_HEIGHT, 0, 0);
-    input_set_abs_params((*inputdev), ABS_PRESSURE, 0, 1, 0, 0);  
+    input_set_abs_params((*inputdev), ABS_PRESSURE, 0, 1, 0, 0);
 
     (*inputdev)->name = "RoboPeakUSBDisplayTS";
     (*inputdev)->id.bustype    = BUS_USB;
@@ -45,7 +45,7 @@ static int _on_create_input_dev(struct input_dev ** inputdev)
 
 static void _on_release_input_dev(struct input_dev * inputdev)
 {
-    
+
     input_unregister_device(inputdev);
 }
 
@@ -90,6 +90,6 @@ void touchhandler_send_ts_event(struct rpusbdisp_dev * dev, int x, int y, int to
     } else {
         input_report_abs(_default_input_dev, ABS_PRESSURE, 0);
         input_report_key(_default_input_dev,BTN_TOUCH, 0);
-        input_sync(_default_input_dev);        
+        input_sync(_default_input_dev);
     }
 }

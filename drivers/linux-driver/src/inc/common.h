@@ -1,6 +1,6 @@
 /*
  *    RoboPeak USB LCD Display Linux Driver
- *    
+ *
  *    Copyright (C) 2009 - 2013 RoboPeak Team
  *    This file is licensed under the GPL. See LICENSE in the package.
  *
@@ -25,7 +25,7 @@
 #include <asm/uaccess.h>
 #include <linux/usb.h>
 #include <linux/list.h>
-#include <linux/kthread.h> 
+#include <linux/kthread.h>
 #include <linux/platform_device.h>
 #include <linux/string.h>
 #include <linux/delay.h>

@@ -1,10 +1,10 @@
-/* 
+/*
  *  RoboPeak Project
  *  Copyright 2009 - 2013
  *
  *  RP USB Display
  *  Protocol Def
- *  
+ *
  *  Initial Version by Shikai Chen
  */
 
@@ -17,7 +17,7 @@
 
 // -- Display Packets
 #define RPUSBDISP_DISPCMD_NOPE             0
-#define RPUSBDISP_DISPCMD_FILL             1  
+#define RPUSBDISP_DISPCMD_FILL             1
 #define RPUSBDISP_DISPCMD_BITBLT           2
 #define RPUSBDISP_DISPCMD_RECT             3
 #define RPUSBDISP_DISPCMD_COPY_AREA        4
@@ -39,7 +39,7 @@
 #define RPUSBDISP_CMD_FLAG_START            (0x1<<7)
 typedef struct _rpusbdisp_disp_packet_header_t {
 #if 0
-    _u8 cmd:6; 
+    _u8 cmd:6;
     _u8 cleardirty:1;
     _u8 start:1;
 #else

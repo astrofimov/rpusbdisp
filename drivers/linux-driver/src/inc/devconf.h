@@ -1,6 +1,6 @@
 /*
  *    RoboPeak USB LCD Display Linux Driver
- *    
+ *
  *    Copyright (C) 2009 - 2013 RoboPeak Team
  *    This file is licensed under the GPL. See LICENSE in the package.
  *
@@ -23,7 +23,7 @@
 #define RP_DISP_DEFAULT_HEIGHT      240
 #define RP_DISP_DEFAULT_WIDTH       320
 #define RP_DISP_DEFAULT_PIXEL_BITS  16
-typedef _u16  pixel_type_t; 
+typedef _u16  pixel_type_t;
 
 
 #define RP_DISP_FEATURE_RLE_FWVERSION 0x0104

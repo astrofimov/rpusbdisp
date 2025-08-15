@@ -9,6 +9,8 @@
 #include <rp/infra_config.h>
 #include <memory>
 #include <vector>
+#include <thread>
+#include <chrono>
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef RP_INFRA_PLATFORM_WINDOWS
@@ -39,24 +41,24 @@ static void onStatusUpdated(const rpusbdisp_status_normal_packet_t& status) {
 static int cPlusPlusInterfaceDemo(void* framebuffer) {
     try {
         shared_ptr<RoboPeakUsbDisplayDevice> display = RoboPeakUsbDisplayDevice::openFirstDevice();
-        
+
         if (!display) {
             fprintf(stderr, "No display found\n");
             return -1;
         }
-        
+
         printf("Display with S/N %s is chosen\n", display->getDevice()->getSerialNumber().c_str());
-        
-        
+
+
         display->setStatusUpdatedCallback(onStatusUpdated);
         display->enable();
-        
+
         this_thread::sleep_for(chrono::seconds(2));
-        
+
         while (display->isAlive()) {
             display->bitblt(0, 0, 320, 240, RoboPeakUsbDisplayBitOperationCopy, framebuffer);
             this_thread::sleep_for(chrono::seconds(2));
-            
+
             for (int i = 0; i < 100; i++) {
                 uint16_t x = rand()%320;
                 uint16_t y = rand()%240;
@@ -64,18 +66,18 @@ static int cPlusPlusInterfaceDemo(void* framebuffer) {
                 uint16_t height = 1+(rand()%240);
                 uint16_t color = rand()&0xffffu;
                 RoboPeakUsbDisplayBitOperation bitOperation = (RoboPeakUsbDisplayBitOperation)(rand()%4);
-                
+
                 display->fillrect(x, y, x + width, y + height, color, bitOperation);
             }
             this_thread::sleep_for(chrono::seconds(2));
-            
+
             display->copyArea(0, 0, 160, 120, 160, 120);
             this_thread::sleep_for(chrono::seconds(2));
-            
+
             display->fill(0xcb20u);
             this_thread::sleep_for(chrono::seconds(2));
         }
-        
+
         fprintf(stderr, "Display is disconnected\n");
     } catch (Exception& e) {
         e.printToConsole();
@@ -93,43 +95,43 @@ static void cInterfaceStatusUpdatedCallback(rpusbdisp_status_normal_packet_t* st
 
 static int cInterfaceDemo(void* framebuffer) {
     RoboPeakUsbDisplayDeviceRef device;
-    
+
     if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayOpenFirstDevice(&device))) {
         return -1;
     }
-    
+
     if (!device) {
         fprintf(stderr, "No display found\n");
         return -1;
     }
-    
+
     if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplaySetStatusUpdatedCallback(device, cInterfaceStatusUpdatedCallback, 0))) {
         RoboPeakUsbDisplayDisposeDevice(device);
         return -1;
     }
-    
+
     if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayEnable(device))) {
         RoboPeakUsbDisplayDisposeDevice(device);
         return -1;
     }
-    
+
     while (true) {
         bool alive = false;
-        
+
         if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayIsAlive(device, &alive))) {
             break;
         }
-        
+
         if (!alive) {
             break;
         }
-        
+
         if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayBitblt(device, 0, 0, 320, 240, RoboPeakUsbDisplayBitOperationCopy, framebuffer))) {
             break;
         }
-        
+
         sleep(2);
-        
+
         for (int i = 0; i < 100; i++) {
             uint16_t x = rand()%320;
             uint16_t y = rand()%240;
@@ -137,27 +139,27 @@ static int cInterfaceDemo(void* framebuffer) {
             uint16_t height = 1+(rand()%240);
             uint16_t color = rand()&0xffffu;
             RoboPeakUsbDisplayBitOperation bitOperation = (RoboPeakUsbDisplayBitOperation)(rand()%4);
-            
+
             if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayFillRect(device, x, y, x + width, y + height, color, bitOperation))) {
                 break;
             }
         }
-        
+
         sleep(2);
-        
+
         if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayCopyArea(device, 0, 0, 160, 120, 160, 120))) {
             break;
         }
-        
+
         sleep(2);
-        
+
         if (!RoboPeakUsbDisplayDriverIsSuccess(RoboPeakUsbDisplayFill(device, 0xcb20u))) {
             break;
         }
-        
+
         sleep(2);
     }
-    
+
     RoboPeakUsbDisplayDisposeDevice(device);
     fprintf(stderr, "Display is disconnected\n");
 
@@ -168,7 +170,7 @@ static int cInterfaceDemo(void* framebuffer) {
 int main(void) {
     uint16_t* framebuffer = (uint16_t*)malloc(320*240*2);
     uint16_t* p = framebuffer;
-    
+
     for (int y = 0; y < 240; y++) {
         for (int x = 0; x < 320; x++, p++) {
             if (x == 8 || x == 311 || y == 8 || y == 231) {
@@ -186,6 +188,6 @@ int main(void) {
 #endif
 
     free(framebuffer);
-    
+
     return result;
 }

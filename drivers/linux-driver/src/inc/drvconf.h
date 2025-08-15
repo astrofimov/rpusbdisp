@@ -1,6 +1,6 @@
 /*
  *    RoboPeak USB LCD Display Linux Driver
- *    
+ *
  *    Copyright (C) 2009 - 2013 RoboPeak Team
  *    This file is licensed under the GPL. See LICENSE in the package.
  *

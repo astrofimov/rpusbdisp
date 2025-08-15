@@ -14,8 +14,16 @@
 *.a
 *.lib
 
+# User mode sdk make files
+drivers/usermode-sdk/Makefile
+drivers/usermode-sdk/Makefile.conf
+drivers/usermode-sdk/config.status
+
 # kernel intermedate files
 *.o.cmd
+*.cmd
+*.mod
+*.mod.c
 *.ko
 modules.order
 Module.symvers
@@ -41,3 +49,6 @@ Debug
 Release
 build
 doc
+
+# VIM
+*.swp

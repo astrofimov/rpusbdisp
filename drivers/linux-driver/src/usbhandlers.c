@@ -1,6 +1,6 @@
 /*
  *    RoboPeak USB LCD Display Linux Driver
- *    
+ *
  *    Copyright (C) 2009 - 2013 RoboPeak Team
  *    This file is licensed under the GPL. See LICENSE in the package.
  *
@@ -21,10 +21,10 @@
 
 
 static const struct usb_device_id id_table[] = {
-	{ 
-          .idVendor    = RP_DISP_USB_VENDOR_ID, 
+	{
+          .idVendor    = RP_DISP_USB_VENDOR_ID,
           .idProduct   = RP_DISP_USB_PRODUCT_ID,
-          .match_flags = USB_DEVICE_ID_MATCH_VENDOR | USB_DEVICE_ID_MATCH_PRODUCT, 
+          .match_flags = USB_DEVICE_ID_MATCH_VENDOR | USB_DEVICE_ID_MATCH_PRODUCT,
         },
 	{ },
 };
@@ -35,7 +35,7 @@ static DEFINE_MUTEX(_mutex_usbdevlist);
 static DECLARE_WAIT_QUEUE_HEAD(_usblist_waitqueue);
 
 #if 0
-static struct task_struct * _usb_status_polling_task;  
+static struct task_struct * _usb_status_polling_task;
 static int _kthread_usb_status_poller_proc(void *data);
 #endif
 
@@ -55,7 +55,7 @@ struct rpusbdisp_disp_ticket {
     struct urb                      *  transfer_urb;
     struct list_head                   ticket_list_node;
     struct rpusbdisp_dev            *  binded_dev;
-    
+
 };
 
 
@@ -68,10 +68,10 @@ struct rpusbdisp_disp_ticket_pool {
     wait_queue_head_t                  wait_queue;
     struct delayed_work                completion_work;
 
-};  
+};
 
 struct rpusbdisp_dev {
-    // timing and sync 
+    // timing and sync
     struct list_head                   dev_list_node;
     int                                dev_id;
     struct mutex                       op_locker;
@@ -80,13 +80,13 @@ struct rpusbdisp_dev {
     // usb device info
     struct usb_device               *  udev;
     struct usb_interface            *  interface;
-    
+
 
     // status package related
     __u8                               status_in_buffer[RPUSBDISP_STATUS_BUFFER_SIZE]; // data buffer for the status IN endpoint
     size_t                             status_in_buffer_recvsize;
 
-        
+
 
     __u8                               status_in_ep_addr;
     wait_queue_head_t                  status_wait_queue;
@@ -135,7 +135,7 @@ void rpusbdisp_usb_set_fbhandle(struct rpusbdisp_dev * dev, void * fbhandle)
 {
     dev->fb_handle = fbhandle;
 }
- 
+
 void * rpusbdisp_usb_get_fbhandle(struct rpusbdisp_dev * dev)
 {
     return dev->fb_handle;
@@ -185,7 +185,7 @@ static void _on_parse_status_packet(struct rpusbdisp_dev *dev)
     if (header->packet_type == RPUSBDISP_STATUS_TYPE_NORMAL) {
         // only supports the normal status packet currently
         rpusbdisp_status_normal_packet_t * normalpacket = (rpusbdisp_status_normal_packet_t *)header;
-        
+
 
 
         if (normalpacket->display_status & RPUSBDISP_DISPLAY_STATUS_DIRTY_FLAG) {
@@ -193,7 +193,7 @@ static void _on_parse_status_packet(struct rpusbdisp_dev *dev)
             schedule_delayed_work(&dev->disp_tickets_pool.completion_work, 0);
         }
 
-    
+
         touchhandler_send_ts_event(dev, le32_to_cpu(normalpacket->touch_x), le32_to_cpu(normalpacket->touch_y),  normalpacket->touch_status==RPUSBDISP_TOUCH_STATUS_PRESSED?1:0);
 //        printk("X:%d Y:%d S:%d\n", (int)le32_to_cpu(normalpacket->touch_x), (int)le32_to_cpu(normalpacket->touch_y), normalpacket->touch_status);
     }
@@ -204,7 +204,7 @@ static void _on_display_transfer_finished_delaywork(struct work_struct *work)
     struct rpusbdisp_dev * dev = container_of(work, struct rpusbdisp_dev,
 					      disp_tickets_pool.completion_work.work);
 
-   
+
     if (!dev->is_alive) return;
     fbhandler_on_all_transfer_done(dev);
 }
@@ -213,20 +213,20 @@ static void _on_display_transfer_finished(struct urb *urb)
 {
     struct rpusbdisp_disp_ticket * ticket = (struct rpusbdisp_disp_ticket *)urb->context;
     struct rpusbdisp_dev         * dev = ticket->binded_dev;
-    
+
     int                            all_finished = 0;
 	/* sync/async unlink faults aren't errors */
 	if (urb->status) {
-	
+
         if (dev->is_alive) {
             // set unsync flag
 		    fbhandler_set_unsync_flag(dev);
         }
         err("transmission failed for urb %p, error code %x\n", urb, urb->status);
-	
-	} 
 
-    
+	}
+
+
 
     urb->transfer_buffer_length = dev->disp_tickets_pool.packet_size_factor * dev->disp_out_ep_max_size; // reset buffer size
 
@@ -236,7 +236,7 @@ static void _on_display_transfer_finished(struct urb *urb)
     if (all_finished && !urb->status) {
         schedule_delayed_work(&dev->disp_tickets_pool.completion_work, 0);
     }
-    
+
 }
 
 static void _on_status_query_finished(struct urb *urb)
@@ -253,7 +253,7 @@ static void _on_status_query_finished(struct urb *urb)
             // succeed
             // store the actual transfer size
             dev->status_in_buffer_recvsize = urb->actual_length;
-            
+
 
             _on_parse_status_packet(dev);
             // notify the waiters..
@@ -265,7 +265,7 @@ static void _on_status_query_finished(struct urb *urb)
             //++dev->urb_status_fail_count;
             dev->urb_status_fail_count = RPUSBDISP_STATUS_QUERY_RETRY_COUNT;
     }
-    
+
     if (dev->urb_status_fail_count < RPUSBDISP_STATUS_QUERY_RETRY_COUNT) {
         _status_start_querying(dev);
     }
@@ -279,7 +279,7 @@ static void _status_start_querying(struct rpusbdisp_dev * dev)
     int status;
     struct usb_host_endpoint *ep;
 
-	
+
     if (!dev->is_alive) {
         // the device is dead, abort
         return;
@@ -299,14 +299,14 @@ static void _status_start_querying(struct rpusbdisp_dev * dev)
     usb_fill_int_urb(dev->urb_status_query, dev->udev, pipe, dev->status_in_buffer, RPUSBDISP_STATUS_BUFFER_SIZE,
 				_on_status_query_finished, dev,
 				ep->desc.bInterval);
-    
+
     //submit it
     status = usb_submit_urb(dev->urb_status_query, GFP_ATOMIC);
     if (status) {
         if (status == -EPIPE) {
             usb_clear_halt(dev->udev, pipe);
         }
-        
+
         ++ dev->urb_status_fail_count;
     }
 }
@@ -331,10 +331,10 @@ static int _sell_disp_tickets(struct rpusbdisp_dev * dev, struct rpusbdisp_disp_
         }
 
         dev->disp_tickets_pool.availiable_count -= required_count;
-        
+
         bundle->ticket_count = required_count;
         ans = bundle->ticket_count;
-        
+
         INIT_LIST_HEAD(&bundle->ticket_list);
         while(required_count--) {
             node = dev->disp_tickets_pool.list.next;
@@ -352,14 +352,14 @@ static int _return_disp_tickets(struct rpusbdisp_dev * dev,  struct  rpusbdisp_d
     int all_finished = 0;
     unsigned long  irq_flags;
     // insert to the available queue
-    
+
     spin_lock_irqsave(&dev->disp_tickets_pool.oplock, irq_flags);
 	list_add_tail(&ticket->ticket_list_node, &dev->disp_tickets_pool.list);
 
     if ( ++dev->disp_tickets_pool.availiable_count == dev->disp_tickets_pool.disp_urb_count) {
-        all_finished = 1;   
+        all_finished = 1;
     }
-	
+
 	spin_unlock_irqrestore(&dev->disp_tickets_pool.oplock, irq_flags);
 
 
@@ -370,7 +370,7 @@ static int _return_disp_tickets(struct rpusbdisp_dev * dev,  struct  rpusbdisp_d
 
 int rpusbdisp_usb_try_copy_area(struct rpusbdisp_dev * dev, int sx, int sy, int dx, int dy, int width, int height)
 {
-    
+
     struct  rpusbdisp_disp_ticket_bundle bundle;
     struct  rpusbdisp_disp_ticket * ticket;
     rpusbdisp_disp_copyarea_packet_t * cmd_copyarea;
@@ -383,7 +383,7 @@ int rpusbdisp_usb_try_copy_area(struct rpusbdisp_dev * dev, int sx, int sy, int 
     BUG_ON(sizeof(rpusbdisp_disp_copyarea_packet_t) > dev->disp_out_ep_max_size);
 
     ticket = list_entry(bundle.ticket_list.next, struct  rpusbdisp_disp_ticket, ticket_list_node);
-    
+
     cmd_copyarea = (rpusbdisp_disp_copyarea_packet_t *)ticket->transfer_urb->transfer_buffer;
     cmd_copyarea->header.cmd_flag = RPUSBDISP_DISPCMD_COPY_AREA| RPUSBDISP_CMD_FLAG_START;
 
@@ -396,14 +396,14 @@ int rpusbdisp_usb_try_copy_area(struct rpusbdisp_dev * dev, int sx, int sy, int 
     cmd_copyarea->height = cpu_to_le16(height);
 
     //add one more byte to bypass usbdisp 1.03 fw bug
-    ticket->transfer_urb->transfer_buffer_length = sizeof(rpusbdisp_disp_copyarea_packet_t) + 1; 
+    ticket->transfer_urb->transfer_buffer_length = sizeof(rpusbdisp_disp_copyarea_packet_t) + 1;
 
     if (usb_submit_urb(ticket->transfer_urb, GFP_KERNEL)) {
         // submit failure,
          _on_display_transfer_finished(ticket->transfer_urb);
         return 0;
     }
-    
+
     return 1;
 
 }
@@ -423,7 +423,7 @@ int rpusbdisp_usb_try_draw_rect(struct rpusbdisp_dev * dev, int x, int y, int ri
     BUG_ON(sizeof(rpusbdisp_disp_fillrect_packet_t) > dev->disp_out_ep_max_size);
 
     ticket = list_entry(bundle.ticket_list.next, struct  rpusbdisp_disp_ticket, ticket_list_node);
-    
+
     cmd_fillrect = (rpusbdisp_disp_fillrect_packet_t *)ticket->transfer_urb->transfer_buffer;
 
     cmd_fillrect->header.cmd_flag = RPUSBDISP_DISPCMD_RECT | RPUSBDISP_CMD_FLAG_START;
@@ -443,7 +443,7 @@ int rpusbdisp_usb_try_draw_rect(struct rpusbdisp_dev * dev, int x, int y, int ri
          _on_display_transfer_finished(ticket->transfer_urb);
         return 0;
     }
-    
+
     return 1;
 
 }
@@ -467,9 +467,9 @@ struct bitblt_encoding_context_t {
 
 
 
-static int _bitblt_encoder_init(struct bitblt_encoding_context_t * ctx, struct rpusbdisp_dev * dev, size_t image_size, int rlemode) 
+static int _bitblt_encoder_init(struct bitblt_encoding_context_t * ctx, struct rpusbdisp_dev * dev, size_t image_size, int rlemode)
 {
-    
+
     size_t effective_payload_per_packet_size;
     size_t packet_count;
     size_t required_tickets_count;
@@ -482,16 +482,16 @@ static int _bitblt_encoder_init(struct bitblt_encoding_context_t * ctx, struct r
     if (rlemode) {
         // the worst case for RLE is 1 extra byte with each 128 pixels (since the 7bit size block can represent 128 uints)
         payload_without_header_size += (((image_size>>1) + 0x7f)>>7);
-    }   
+    }
 
 
     // calc how many tickets are needed ...
     effective_payload_per_packet_size = dev->disp_out_ep_max_size - sizeof(rpusbdisp_disp_packet_header_t);
-    
+
     packet_count = (payload_without_header_size + effective_payload_per_packet_size-1) /effective_payload_per_packet_size;
     required_tickets_count = (packet_count + dev->disp_tickets_pool.packet_size_factor-1) / dev->disp_tickets_pool.packet_size_factor;
 
-    
+
     if ( required_tickets_count>RPUSBDISP_MAX_TRANSFER_TICKETS_COUNT)
     {
         err("required_tickets_count (%d)>RPUSBDISP_MAX_TRANSFER_TICKETS_COUNT(%d)\n", required_tickets_count, RPUSBDISP_MAX_TRANSFER_TICKETS_COUNT);
@@ -499,8 +499,8 @@ static int _bitblt_encoder_init(struct bitblt_encoding_context_t * ctx, struct r
         return 0;
     }
 
- 
-    
+
+
     if (!_sell_disp_tickets(dev, &ctx->bundle, required_tickets_count)) {
         // tickets is inadequate, try next time
         return 0;
@@ -522,7 +522,7 @@ static void _bitblt_encode_command_header(struct bitblt_encoding_context_t * ctx
     rpusbdisp_disp_bitblt_packet_t * bitblt_header ;
 
     // encoding the command header...
-       
+
     bitblt_header = (rpusbdisp_disp_bitblt_packet_t *)ctx->urbbuffer;
     bitblt_header->header.cmd_flag = ctx->rlemode?RPUSBDISP_DISPCMD_BITBLT_RLE:RPUSBDISP_DISPCMD_BITBLT;
     bitblt_header->header.cmd_flag |= RPUSBDISP_CMD_FLAG_START;
@@ -535,7 +535,7 @@ static void _bitblt_encode_command_header(struct bitblt_encoding_context_t * ctx
     bitblt_header->width = cpu_to_le16(right+1-x);
     bitblt_header->height = cpu_to_le16(bottom+1-y);
     bitblt_header->operation = RPUSBDISP_OPERATION_COPY;
-        
+
     ctx->encoded_pos = sizeof(rpusbdisp_disp_bitblt_packet_t);
 
 }
@@ -558,19 +558,19 @@ static void _bitblt_encoder_cleanup(struct bitblt_encoding_context_t * ctx, stru
 
 static int _bitblt_encoder_flush(struct bitblt_encoding_context_t * ctx, struct rpusbdisp_dev * dev)
 {
-    
+
 
     // submit the final ticket
 
     size_t transfer_size = ctx->packet_pos * dev->disp_out_ep_max_size + ctx->encoded_pos;
-    
+
     if (transfer_size) {
         ctx->ticket->transfer_urb->transfer_buffer_length = transfer_size;
-        
+
         ctx->current_node = ctx->current_node->next;
         if (usb_submit_urb(ctx->ticket->transfer_urb, GFP_KERNEL)) {
             // submit failure,
-           
+
             _on_display_transfer_finished(ctx->ticket->transfer_urb);
             return 0; //abort
         }
@@ -596,40 +596,40 @@ static int _bitblt_encode_n_transfer_data(struct bitblt_encoding_context_t * ctx
         payload_in_bytes += size_to_copy;
         ctx->encoded_pos += size_to_copy;
 
-        
+
         count -= size_to_copy;
 
         if (buffer_avail_length == size_to_copy) {
             // current transfer block is full
             ctx->urbbuffer += dev->disp_out_ep_max_size;
-            
-            
+
+
             if (++ctx->packet_pos >= dev->disp_tickets_pool.packet_size_factor) {
                 // current urb is full, send the ticket
                 ctx->current_node = ctx->current_node->next;
                 if (usb_submit_urb(ctx->ticket->transfer_urb, GFP_KERNEL)) {
                     // submit failure,
-                  
+
                     _on_display_transfer_finished(ctx->ticket->transfer_urb);
                     return 0; //abort
                 }
 
-                
+
                 // a new ticket
                 ctx->packet_pos = 0;
-                
+
                 BUG_ON(ctx->current_node == &ctx->bundle.ticket_list);
 
                 ctx->ticket = list_entry(ctx->current_node, struct  rpusbdisp_disp_ticket, ticket_list_node);
                 ctx->urbbuffer = (_u8 *)ctx->ticket->transfer_urb->transfer_buffer;
-    
+
             }
 
             // encoding the header
             *ctx->urbbuffer = 0;
             ((rpusbdisp_disp_packet_header_t *)ctx->urbbuffer)->cmd_flag = ctx->rlemode?RPUSBDISP_DISPCMD_BITBLT_RLE:RPUSBDISP_DISPCMD_BITBLT;
             ctx->encoded_pos = sizeof(rpusbdisp_disp_packet_header_t);
-        
+
         }
     }
 
@@ -650,7 +650,7 @@ static void _rle_compress_init(struct rle_encoder_context * rle_ctx, struct bitb
     rle_ctx->encoder_ctx = encoder_ctx;
     rle_ctx->is_common_section = 0;
     rle_ctx->section_size = 0;
-    
+
 }
 
 
@@ -676,14 +676,14 @@ static int _rle_flush_section(struct rle_encoder_context * rle_ctx, struct rpusb
         // abort the operation...
         return 0;
     }
-                
+
     section_data_len = rle_ctx->is_common_section? 1:rle_ctx->section_size;
     if (!_bitblt_encode_n_transfer_data(rle_ctx->encoder_ctx, dev, rle_ctx->section_data, sizeof(pixel_type_t) * section_data_len)) {
         // abort the operation...
         return 0;
     }
-                
-    
+
+
     // reinit the section
     rle_ctx->is_common_section = 0;
     rle_ctx->section_size = 0;
@@ -708,7 +708,7 @@ static int  _rle_compress_n_encode(struct rle_encoder_context * rle_ctx, struct 
 
             if (rle_ctx->section_size == RPUSBDISP_RLE_BLOCKFLAG_SIZE_BIT + 1) {
                 // section is full, flush it...
-                
+
                 if (!_rle_flush_section(rle_ctx, dev)) {
                     return 0;
                 }
@@ -722,7 +722,7 @@ static int  _rle_compress_n_encode(struct rle_encoder_context * rle_ctx, struct 
         }
     } else {
         // check whether the current pixel is equal to the last pixel value...
-  
+
         if (rle_ctx->section_size && (pixel == rle_ctx->section_data[rle_ctx->section_size-1])) {
             // remove the last pixel from the current section, flush the section and form a common section
             --rle_ctx->section_size;
@@ -741,7 +741,7 @@ static int  _rle_compress_n_encode(struct rle_encoder_context * rle_ctx, struct 
         } else {
             if (rle_ctx->section_size == RPUSBDISP_RLE_BLOCKFLAG_SIZE_BIT + 1) {
                 // section is full, flush it...
-                
+
                 if (!_rle_flush_section(rle_ctx, dev)) {
                     return 0;
                 }
@@ -750,7 +750,7 @@ static int  _rle_compress_n_encode(struct rle_encoder_context * rle_ctx, struct 
             // include the new data
             rle_ctx->section_data[rle_ctx->section_size++] = pixel;
         }
-        
+
 
     }
 
@@ -764,7 +764,7 @@ int rpusbdisp_usb_try_send_image(struct rpusbdisp_dev * dev, const pixel_type_t 
 {
     struct bitblt_encoding_context_t encoder_ctx;
     struct rle_encoder_context       rle_ctx;
-    int    last_copied_x, last_copied_y; 
+    int    last_copied_x, last_copied_y;
     int    rlemode;
 
     // estimate how many tickets are needed
@@ -778,7 +778,7 @@ int rpusbdisp_usb_try_send_image(struct rpusbdisp_dev * dev, const pixel_type_t 
     } else {
         rlemode = 0;
     }
-    
+
     if (!_bitblt_encoder_init(&encoder_ctx, dev, image_size, rlemode)) return 0;
 
     if (rlemode) {
@@ -789,15 +789,15 @@ int rpusbdisp_usb_try_send_image(struct rpusbdisp_dev * dev, const pixel_type_t 
 
     // locate to the begining...
     framebuffer += (y*line_width + x);
-    
+
     for (last_copied_y = y; last_copied_y <= bottom; ++last_copied_y) {
-        
+
         for (last_copied_x = x; last_copied_x <= right; ++last_copied_x) {
            pixel_type_t current_pixel_le = cpu_to_le16(*framebuffer);
-            
+
 #if (RP_DISP_DEFAULT_PIXEL_BITS/8) != 2
     #error "only 16bit pixel type is supported"
-#endif  
+#endif
            if (rlemode) {
                 if (!_rle_compress_n_encode(&rle_ctx, dev, current_pixel_le)) {
                     _bitblt_encoder_cleanup(&encoder_ctx, dev);
@@ -806,23 +806,23 @@ int rpusbdisp_usb_try_send_image(struct rpusbdisp_dev * dev, const pixel_type_t 
            } else {
                 if (!_bitblt_encode_n_transfer_data(&encoder_ctx, dev, &current_pixel_le, sizeof(pixel_type_t))) {
                     // abort the operation...
-                    
+
                     _bitblt_encoder_cleanup(&encoder_ctx, dev);
                     return 0;
                 }
            }
-           
+
            ++framebuffer;
-           
+
         }
         framebuffer += line_width - right - 1 + x;
     }
-    
+
     if (rlemode) {
         if (!_rle_flush_section(&rle_ctx, dev)) {
             _bitblt_encoder_cleanup(&encoder_ctx, dev);
             return 0;
-        }            
+        }
     }
 
     return _bitblt_encoder_flush(&encoder_ctx, dev);
@@ -837,13 +837,13 @@ static void _on_release_disp_tickets_pool(struct rpusbdisp_dev * dev)
     struct list_head *node;
     int tickets_count = dev->disp_tickets_pool.disp_urb_count;
     DEFINE_WAIT(wait);
-    
+
     dev_info(&dev->interface->dev, "waiting for all tickets to be finished...\n");
 
-    
+
 
     while(tickets_count) {
-        
+
         spin_lock_irqsave(&dev->disp_tickets_pool.oplock, irq_flags);
         if (dev->disp_tickets_pool.availiable_count) {
             --dev->disp_tickets_pool.availiable_count;
@@ -861,7 +861,7 @@ static void _on_release_disp_tickets_pool(struct rpusbdisp_dev * dev)
         spin_unlock_irqrestore(&dev->disp_tickets_pool.oplock,irq_flags);
 
         ticket = list_entry(node, struct rpusbdisp_disp_ticket, ticket_list_node);
-      
+
 		usb_free_coherent(ticket->transfer_urb->dev, RPUSBDISP_MAX_TRANSFER_SIZE,
 				  ticket->transfer_urb->transfer_buffer, ticket->transfer_urb->transfer_dma);
 
@@ -883,7 +883,7 @@ static int _on_alloc_disp_tickets_pool(struct rpusbdisp_dev * dev)
     packet_size_factor = (RPUSBDISP_MAX_TRANSFER_SIZE/dev->disp_out_ep_max_size) ;
     ticket_logic_size = packet_size_factor * dev->disp_out_ep_max_size ;
 
-    
+
     spin_lock_init(&dev->disp_tickets_pool.oplock);
     INIT_LIST_HEAD(&dev->disp_tickets_pool.list);
 
@@ -892,14 +892,14 @@ static int _on_alloc_disp_tickets_pool(struct rpusbdisp_dev * dev)
         if (!newborn) {
             break;
         }
-        
+
         newborn->transfer_urb = usb_alloc_urb(0, GFP_KERNEL);
         if (!newborn->transfer_urb) {
             kfree(newborn);
             break;
         }
-        
-      
+
+
 
         transfer_buffer = usb_alloc_coherent(dev->udev, RPUSBDISP_MAX_TRANSFER_SIZE, GFP_KERNEL, &newborn->transfer_urb->transfer_dma);
         if (!transfer_buffer) {
@@ -908,13 +908,13 @@ static int _on_alloc_disp_tickets_pool(struct rpusbdisp_dev * dev)
             break;
         }
 
-        
+
         // setup urb
-        usb_fill_bulk_urb(newborn->transfer_urb, dev->udev, usb_sndbulkpipe(dev->udev, dev->disp_out_ep_addr), 
+        usb_fill_bulk_urb(newborn->transfer_urb, dev->udev, usb_sndbulkpipe(dev->udev, dev->disp_out_ep_addr),
             transfer_buffer, ticket_logic_size, _on_display_transfer_finished, newborn);
         newborn->transfer_urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 
-        
+
         newborn->binded_dev = dev;
 
         dev_info(&dev->interface->dev, "allocated ticket %p with urb %p\n", newborn, newborn->transfer_urb);
@@ -923,7 +923,7 @@ static int _on_alloc_disp_tickets_pool(struct rpusbdisp_dev * dev)
         list_add_tail(&newborn->ticket_list_node, &dev->disp_tickets_pool.list);
 
         ++actual_allocated;
-        
+
     }
 
     INIT_DELAYED_WORK(&dev->disp_tickets_pool.completion_work, _on_display_transfer_finished_delaywork);
@@ -942,7 +942,7 @@ static int _on_new_usb_device(struct rpusbdisp_dev * dev)
     // the rp-usb-display device has been verified
     mutex_init(&dev->op_locker);
     init_waitqueue_head(&dev->status_wait_queue);
-	
+
 
     dev->urb_status_query = usb_alloc_urb(0, GFP_KERNEL);
     if (! dev->urb_status_query) {
@@ -955,14 +955,14 @@ static int _on_new_usb_device(struct rpusbdisp_dev * dev)
         goto disp_tickets_alloc_fail;
     }
 
-   
+
     _add_usbdev_to_list(dev);
     dev->dev_id = rpusbdisp_usb_get_device_count();
     dev->is_alive = 1;
     dev->device_fwver = le16_to_cpu(dev->udev->descriptor.bcdDevice);
 
-    dev_info(&dev->interface->dev, "RP USB Display found (#%d), Firmware Version: %d.%02d, S/N: %s\n", 
-                                dev->dev_id, 
+    dev_info(&dev->interface->dev, "RP USB Display found (#%d), Firmware Version: %d.%02d, S/N: %s\n",
+                                dev->dev_id,
                                 (dev->device_fwver>>8),
                                 (dev->device_fwver & 0xFF),
                                 dev->udev->serial?dev->udev->serial:"(unknown)");
@@ -994,7 +994,7 @@ static void _on_del_usb_device(struct rpusbdisp_dev * dev)
     mutex_lock(&dev->op_locker);
     dev->is_alive = 0;
     mutex_unlock(&dev->op_locker);
-    
+
     touchhandler_on_remove_device(dev);
     fbhandler_on_remove_device(dev);
 
@@ -1004,16 +1004,16 @@ static void _on_del_usb_device(struct rpusbdisp_dev * dev)
 
 
 
-    
-    _del_usbdev_from_list(dev);
-    
 
-    
+    _del_usbdev_from_list(dev);
+
+
+
     _on_release_disp_tickets_pool(dev);
-   
+
     usb_free_urb(dev->urb_status_query);
     dev->urb_status_query = NULL;
-     
+
     dev_info(&dev->interface->dev, "RP USB Display (#%d) now disconnected\n", dev->dev_id);
 }
 
@@ -1041,14 +1041,14 @@ static int rpusbdisp_probe(struct usb_interface *interface, const struct usb_dev
 		goto error;
 	}
 
-	
+
 	dev->udev = usb_get_dev(interface_to_usbdev(interface));
 	dev->interface = interface;
 
 	if (le16_to_cpu(dev->udev->descriptor.bcdDevice) > 0x0200) {
 		dev_warn(&interface->dev, "The device you used may requires a newer driver version to work.\n");
 	}
-	
+
     // check for endpoints
 	iface_desc = interface->cur_altsetting;
 	for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
@@ -1059,7 +1059,7 @@ static int rpusbdisp_probe(struct usb_interface *interface, const struct usb_dev
 			// the status input endpoint has been found
 			buffer_size = le16_to_cpu(endpoint->wMaxPacketSize);
 			dev->status_in_ep_addr = endpoint->bEndpointAddress;
-			
+
 		}
 
 		if (!dev->disp_out_ep_addr &&
@@ -1067,7 +1067,7 @@ static int rpusbdisp_probe(struct usb_interface *interface, const struct usb_dev
 			// endpoint for video output has been found
 			dev->disp_out_ep_addr = endpoint->bEndpointAddress;
             dev->disp_out_ep_max_size = le16_to_cpu(endpoint->wMaxPacketSize);
-            
+
 		}
 	}
 
@@ -1076,7 +1076,7 @@ static int rpusbdisp_probe(struct usb_interface *interface, const struct usb_dev
 		goto error;
 	}
 
-    
+
     /* save our data pointer in this interface device */
 	usb_set_intfdata(interface, dev);
 
@@ -1084,7 +1084,7 @@ static int rpusbdisp_probe(struct usb_interface *interface, const struct usb_dev
     if (_on_new_usb_device(dev)) {
         goto error;
     }
- 
+
 
 
 #if 0
@@ -1146,12 +1146,12 @@ static int rpusbdisp_resume (struct usb_interface *intf)
 static void rpusbdisp_disconnect(struct usb_interface *interface)
 {
 	struct rpusbdisp_dev *dev;
-  
+
 	dev = usb_get_intfdata(interface);
 	usb_set_intfdata(interface, NULL);
     _on_del_usb_device(dev);
 
-	kfree(dev);    
+	kfree(dev);
 }
 
 
@@ -1171,11 +1171,11 @@ int __init register_usb_handlers(void)
 
     _working_flag = 1;
 #if 0
-    _usb_status_polling_task = kthread_run(_kthread_usb_status_poller_proc, NULL, "rpusbdisp_worker%d", 0);  
-    if (IS_ERR(_usb_status_polling_task)) {  
+    _usb_status_polling_task = kthread_run(_kthread_usb_status_poller_proc, NULL, "rpusbdisp_worker%d", 0);
+    if (IS_ERR(_usb_status_polling_task)) {
         err("Cannot create the kernel worker thread!\n");
         return -ENOMEM;
-    }  
+    }
 #endif
     return usb_register(&usbdisp_driver);
 }
@@ -1188,9 +1188,9 @@ void unregister_usb_handlers(void)
     _working_flag = 0;
     wake_up(&_usblist_waitqueue);
 #if 0
-    if (!IS_ERR(_usb_status_polling_task)){  
-        kthread_stop(_usb_status_polling_task);  
-    }  
+    if (!IS_ERR(_usb_status_polling_task)){
+        kthread_stop(_usb_status_polling_task);
+    }
 #endif
 
     usb_deregister(&usbdisp_driver);
@@ -1199,7 +1199,7 @@ void unregister_usb_handlers(void)
 
 #if 0
 
-static int _kthread_usb_status_poller_proc(void *data) 
+static int _kthread_usb_status_poller_proc(void *data)
 {
     struct list_head *pos, *q;
 
@@ -1213,17 +1213,17 @@ static int _kthread_usb_status_poller_proc(void *data)
 
 
         // send usb msg to query the status
-        
+
         list_for_each_safe( pos, q, &rpusbdisp_list ) {
             struct rpusbdisp_dev *current_dev;
             current_dev = list_entry( pos, struct rpusbdisp_dev, dev_list_node );
-            
+
 
             // send urbs
-            
+
         }
-  
-        
+
+
     }
 
     return 0;

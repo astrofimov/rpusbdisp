@@ -36,12 +36,12 @@ static inline shared_ptr<RoboPeakUsbDisplayDevice>& getDevice(RoboPeakUsbDisplay
 RoboPeakUsbDisplayDriverResult RoboPeakUsbDisplayOpenFirstDevice(RoboPeakUsbDisplayDeviceRef* outDevice) {
     RPUSBDISP_HANDLE_EXCEPTIONS_BEGIN
         shared_ptr<RoboPeakUsbDisplayDevice> device = RoboPeakUsbDisplayDevice::openFirstDevice();
-        
+
         if (!device) {
             *outDevice = 0;
             return -1;
         }
-        
+
         *outDevice = reinterpret_cast<RoboPeakUsbDisplayDeviceRef>(new shared_ptr<RoboPeakUsbDisplayDevice>(device));
     RPUSBDISP_HANDLE_EXCEPTIONS_END
 }
@@ -54,7 +54,7 @@ RoboPeakUsbDisplayDriverResult RoboPeakUsbDisplayDisposeDevice(RoboPeakUsbDispla
 
 static void status_callback_wrap(RoboPeakUsbDisplayStatusCallback callback, void* closure, const rpusbdisp_status_normal_packet_t& packet) {
     rpusbdisp_status_normal_packet_t* outPacket = const_cast<rpusbdisp_status_normal_packet_t*>(&packet);
-    
+
     callback(outPacket, closure);
 }
 
