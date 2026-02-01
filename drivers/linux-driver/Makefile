@@ -15,12 +15,12 @@
 DRIVER_NAME := rp_usbdisplay
 KERNEL_SOURCE_DIR ?= /lib/modules/`uname -r`/build
 
-EXTRA_CFLAGS += -I$(PWD)/src -I$(PWD)/../common
+EXTRA_CFLAGS += -I$(PWD)/src -I$(PWD)/../common -Werror
 
 obj-m := $(DRIVER_NAME).o
 
 DRIVER_FILES := src/main.o \
-                src/usbhandlers.o \
+		src/usbhandlers.o \
 		src/fbhandlers.o \
 		src/touchhandlers.o
 
